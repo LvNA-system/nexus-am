@@ -6,7 +6,10 @@
 
 __attribute__((noinline))
 void nemu_assert(int cond) {
-  if (!cond) _halt(1);
+  if (!cond) {
+    printf("HIT BAD TRAP\n");
+    _halt(1);
+  }
 }
 
 #endif

@@ -11,9 +11,12 @@ _start:
 
   # only let hart 0 run
   csrr  a0,mhartid
-2:bne a0, zero, 2b
-
+  # load sp
+  # stack size for one core: 0x4000
+  li a1, 0x4000
+  mul a0, a0, a1
   la sp, stack_end
+  sub sp, sp, a0
   tail _trm_init
 
 
@@ -24,6 +27,7 @@ handle_trap:
   tail bad_trap
 
 .align 3
+# reserve stack space for at least 8 cores
 stack:
-  .skip 0x4000
+  .skip 0x20000
 stack_end:
