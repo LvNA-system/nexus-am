@@ -25,12 +25,16 @@ void _halt(int code) {
   while (1);
 }
 
+volatile int wait_core_0_init = 1;
+
 void _trm_init() {
   uart_init();
-
-  int mem_size = 0x2000000;
-  _heap.end = (void *)0x100000000 + mem_size;
-
+  if (!read_const_csr(mhartid)) {
+    int mem_size = 0x10000000;
+    _heap.end = (void *)0x100000000 + mem_size;
+    wait_core_0_init = 0;
+  }
+  while (read_const_csr(mhartid) && wait_core_0_init);
   int ret = main();
   _halt(ret);
 }
