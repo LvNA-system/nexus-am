@@ -1,12 +1,9 @@
-#include "trap.h"
-
-#define KB 1024
-#define MB 1024 * 1024
+#include "klib.h"
 
 volatile int ball = 0;
 int main() {
-  int mhartid = read_const_csr(mhartid);
-  if (mhartid) {
+  int cpu = _cpu();
+  if (cpu) {
     while (1) {
       while (!ball);
       printf("Pong\n");
