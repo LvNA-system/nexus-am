@@ -19,14 +19,12 @@ _start:
   sub sp, sp, a0
   tail _trm_init
 
-
-
+.align 3
 handle_trap:
   # exception stack (for simulation)
   li sp, 0x100fff000
   tail bad_trap
 
-.align 3
 # reserve stack space for at least 8 cores
 stack:
   .skip 0x20000
