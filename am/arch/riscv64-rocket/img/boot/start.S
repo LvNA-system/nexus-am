@@ -11,6 +11,7 @@ _start:
 
   # only let hart 0 run
   csrr  a0,mhartid
+2:bnez a0,2b
   # load sp
   # stack size for one core: 0x4000
   li a1, 0x4000
