@@ -1,3 +1,3 @@
-NAME = tracebuffer-demo
-SRCS = demo.c
+NAME = tracebuf
+SRCS = $(shell find ./src -name "*.c")
 include $(AM_HOME)/Makefile.app
