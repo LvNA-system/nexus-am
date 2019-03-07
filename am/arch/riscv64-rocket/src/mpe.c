@@ -1,6 +1,6 @@
 #include <am.h>
-#include "riscv64-rocket.h"
+#include "riscv64.h"
 
 int _cpu(void) {
-  return read_const_csr(mhartid);
+  return read_csr(mhartid);
 }
