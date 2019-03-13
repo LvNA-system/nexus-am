@@ -15,23 +15,35 @@ void trace_flowthrough_test();
 void init_stack_test();
 void stack_test();
 
-#define CSR_MCAUSE 0x342
+#define CSR_MEPC 0x341
+#define CSR_BCAUSE 0xfcd
 
 // exception handler
 extern void register_exception_handler();
+extern void trace_exception_handler(void);
 void my_exception_handler() {
-  long long mcause = read_csr(CSR_MCAUSE);
-  print_llx(mcause);
+  long long bcause = read_csr(CSR_BCAUSE);
+  if (bcause != 0) {
+    // trace buffer overflow exception
+    trace_exception_handler();
+  } else {
+    // normal exception
+    printf("illegal instruction!\n");
+    // advance the mepc by 2byte to skip over the illegal instruction
+    // so we keep rolling
+    long long mepc = read_csr(CSR_MEPC);
+    write_csr(CSR_MEPC, mepc + 4);
+  }
 }
 
 int main() {
   register_exception_handler();
-  // trigger invalid instruction exception, to see how it goes
-  asm volatile (".word 0x0000");
   init_stack_test();
 
   // test instruction trace buffer
   trace_flowthrough_test();
+
+  return 0;
 
   // test stack trace
   stack_test();

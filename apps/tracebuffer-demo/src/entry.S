@@ -15,6 +15,9 @@
 #define REGBYTES (1 << LOG_REGBYTES)
 #define INTEGER_CONTEXT_SIZE (32 * REGBYTES)
 
+#define bscratch 0x7de
+#define bcause 0xfcd
+
 .option norvc
 .section .text
 .globl register_exception_handler
@@ -28,13 +31,33 @@ register_exception_handler:
   bne t0, t1, 1b
   ret
 
-
+# exception should be properly aligned
+.align 3
 exception_entry:
-  # switch to exception stack, save the old one in mscratch
-  csrrw sp, mscratch, sp
-  la sp, exception_stack
-  addi sp, sp, -INTEGER_CONTEXT_SIZE
+  # save t0 for temporary usage
+  csrw bscratch, t0
+  csrr t0, bcause
+  bne t0, zero, tracebuf_exception
 
+ordinary_exception:
+  # ordinary interrupt/exception
+  # can use all the mXXX CSR registers
+  csrr t0, bscratch
+  csrrw sp, mscratch, sp
+  la sp, normal_exception_stack_end
+  j store_gprs
+
+tracebuf_exception:
+  # ordinary interrupt/exception
+  # can only write the bXXX CSR registers
+  csrr t0, bscratch
+  csrrw sp, bscratch, sp
+  # use a separete stack
+  la sp, tracebuf_exception_stack_end
+  j store_gprs
+
+store_gprs:
+  addi sp, sp, -INTEGER_CONTEXT_SIZE
   # Save all of the registers.
   STORE ra, 1*REGBYTES(sp)
   STORE gp, 3*REGBYTES(sp)
@@ -72,11 +95,16 @@ exception_entry:
   la t0, my_exception_handler
   jalr t0
 
+restore_gprs:
   # Restore all of the registers.
   LOAD ra, 1*REGBYTES(sp)
   LOAD gp, 3*REGBYTES(sp)
   LOAD tp, 4*REGBYTES(sp)
-  LOAD t0, 5*REGBYTES(sp)
+
+  # no hurry to restore t0
+  # we still need to use it
+  # LOAD t0, 5*REGBYTES(sp)
+
   LOAD t1, 6*REGBYTES(sp)
   LOAD t2, 7*REGBYTES(sp)
   LOAD s0, 8*REGBYTES(sp)
@@ -104,12 +132,26 @@ exception_entry:
   LOAD t5,30*REGBYTES(sp)
   LOAD t6,31*REGBYTES(sp)
 
-  # restore stack
+  csrr t0, bcause
+  bne t0, zero, tracebuf_exception_end
+
+normal_exception_end:
+  # normal exception
+  LOAD t0, 5*REGBYTES(sp)
   csrrw sp, mscratch, sp
   mret
 
+tracebuf_exception_end:
+  LOAD t0, 5*REGBYTES(sp)
+  csrrw sp, bscratch, sp
+  mret
+
+
 .section .data
 .align 3
-exception_stack:
+normal_exception_stack:
   .skip 0x4000
-exception_stack_end:
+normal_exception_stack_end:
+tracebuf_exception_stack:
+  .skip 0x4000
+tracebuf_exception_stack_end:

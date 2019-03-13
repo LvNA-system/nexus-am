@@ -17,6 +17,12 @@ typedef union {
 
 int fib(volatile int a) {
   if (a <= 2) {
+    // trigger invalid instruction exception, to see how it goes
+    // this illegal instruction should not be traced
+    asm volatile (".word 0x0");
+
+    // test system call
+    // this ecall instrution should be traced
     _trap();
     return 1;
   }
@@ -73,16 +79,49 @@ void dump_trace(void) {
   } while (i != tracebuffer_head);
 }
 
+void trace_exception_handler(void) {
+  // check whether trace buffer throws exception?
+  BufStat stat = {.val = read_csr(mtracebufstat)};
+  BufCtrl ctrl = {.val = read_csr(mtracebufctrl)};
+
+  int exception = stat.exception && ctrl.exception;
+  if (!exception)
+    return;
+
+  // overflow should never happen, since we set the threshold small
+  assert(!stat.overflow);
+
+  // dump everything in the buffer
+  dump_trace();
+
+  stat.head = 0;
+  stat.exception = 0;
+  write_csr(mtracebufstat, stat.val);
+}
+
+static void set_threshold(int threshold) {
+  BufCtrl ctrl = {.val = read_csr(mtracebufctrl)};
+  ctrl.threshold = threshold;
+  write_csr(mtracebufctrl, ctrl.val);
+}
+
+static void enable_exception(void) {
+  BufCtrl ctrl = {.val = read_csr(mtracebufctrl)};
+  ctrl.exception = 1;
+  write_csr(mtracebufctrl, ctrl.val);
+}
+
 // window set to 0, flowthrough mode
 // in this mode, we capture every instruction that retires
 // if the tracebuffer overflows, we just wrap around
 int trace_flowthrough_test() {
   // do not use trigger
   clear_trace();
+  set_threshold(32);
+  enable_exception();
   start_trace();
   int ret = fib(2);
   stop_trace();
-  dump_trace();
 
   // overflow test
   //clear_trace();
@@ -95,11 +134,19 @@ int trace_flowthrough_test() {
   clear_trace();
   write_csr(mtracebuftriggerstart, (long long)fib);
   write_csr(mtracebuftriggerend, (long long)printf);
-//  set_csr(mtracebufctrl, CTRL_TRIGGER_MASK);
+  //  set_csr(mtracebufctrl, CTRL_TRIGGER_MASK);
   ret = fib(3);
-  printf("should stop\n");
   ret = fib(3);
   stop_trace();
   dump_trace();
+
+  write_csr(mtracebuftriggerstart, (long long)fib);
+  write_csr(mtracebuftriggerend, (long long)printf);
+  //  set_csr(mtracebufctrl, CTRL_TRIGGER_MASK);
+  ret = fib(3);
+  ret = fib(3);
+  stop_trace();
+  dump_trace();
+
   return ret;
 }

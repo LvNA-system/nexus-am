@@ -68,10 +68,11 @@ typedef union {
 
 typedef union {
   struct {
-    uint32_t overflow :1;
-    uint32_t pad0     :7;
-    uint8_t  size       ;
-    uint8_t  head       ;
+    uint32_t overflow  : 1;
+    uint32_t exception : 1;
+    uint32_t pad0      : 6;
+    uint8_t  size        ;
+    uint8_t  head        ;
   };
   uint64_t val;
 } BufStat;
