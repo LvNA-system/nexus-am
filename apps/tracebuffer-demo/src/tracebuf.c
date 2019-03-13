@@ -61,7 +61,7 @@ void dump_trace(void) {
   // if overflow, then tail = head
   int i = (stat.overflow ? tracebuffer_head : 0);
 
-  do {
+  while (i != tracebuffer_head) {
     ctrl.index = i;
     write_csr(mtracebufctrl, ctrl.val);
     TraceBufData data;
@@ -76,7 +76,7 @@ void dump_trace(void) {
     }
     printf("\n");
     i = (i + 1) % (stat.size + 1);
-  } while (i != tracebuffer_head);
+  }
 }
 
 void trace_exception_handler(void) {
@@ -122,6 +122,10 @@ int trace_flowthrough_test() {
   start_trace();
   int ret = fib(2);
   stop_trace();
+  // still need to call dump_trace to dump any trace left in buffer
+  // the number of traces may have not reached threshold
+  // they will probably stay there forever
+  dump_trace();
 
   // overflow test
   //clear_trace();

@@ -56,7 +56,8 @@ void dump_stack(void) {
   // if overflow, then tail = head
   int i = (stat.overflow ? stackbuffer_head : 0);
 
-  do {
+  // output trace in range [0, head)
+  while (i != stackbuffer_head) {
     ctrl.index = i;
     write_csr(mstackbufctrl, ctrl.val);
     StackBufData buf;
@@ -85,7 +86,7 @@ void dump_stack(void) {
     printf("\n");
 
     i = (i + 1) % (stat.size + 1);
-  } while (i != stackbuffer_head);
+  }
 }
 
 void stack_exception_handler(void) {
