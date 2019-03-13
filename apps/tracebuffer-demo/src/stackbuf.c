@@ -22,6 +22,18 @@ void clear_stack(void) {
   write_csr(mstackbufstat, 0);
 }
 
+static void set_threshold(int threshold) {
+  BufCtrl ctrl = {.val = read_csr(mstackbufctrl)};
+  ctrl.threshold = threshold;
+  write_csr(mstackbufctrl, ctrl.val);
+}
+
+static void enable_exception(void) {
+  BufCtrl ctrl = {.val = read_csr(mstackbufctrl)};
+  ctrl.exception = 1;
+  write_csr(mstackbufctrl, ctrl.val);
+}
+
 void start_stack(void) {
   set_csr(mstackbufctrl, CTRL_ENABLE_MASK);
 }
@@ -76,6 +88,26 @@ void dump_stack(void) {
   } while (i != stackbuffer_head);
 }
 
+void stack_exception_handler(void) {
+  // check whether stack buffer throws exception?
+  BufStat stat = {.val = read_csr(mstackbufstat)};
+  BufCtrl ctrl = {.val = read_csr(mstackbufctrl)};
+
+  int exception = stat.exception && ctrl.exception;
+  if (!exception)
+    return;
+
+  // overflow should never happen, since we set the threshold small
+  assert(!stat.overflow);
+
+  // dump everything in the buffer
+  dump_stack();
+
+  stat.head = 0;
+  stat.exception = 0;
+  write_csr(mstackbufstat, stat.val);
+}
+
 volatile int g_dummy = 0;
 int f(volatile int a, volatile int b, volatile int c) {
   if (a == 1) {
@@ -91,8 +123,10 @@ int f(volatile int a, volatile int b, volatile int c) {
 void stack_test() {
   // do not use trigger
   clear_stack();
+  set_threshold(32);
+  enable_exception();
   start_stack();
-  f(2, 1, 0);
+  f(8, 7, 6);
   stop_stack();
   dump_stack();
 

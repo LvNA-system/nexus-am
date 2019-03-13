@@ -21,11 +21,12 @@ void stack_test();
 // exception handler
 extern void register_exception_handler();
 extern void trace_exception_handler(void);
+extern void stack_exception_handler(void);
 void my_exception_handler() {
   long long bcause = read_csr(CSR_BCAUSE);
   if (bcause != 0) {
-    // trace buffer overflow exception
     trace_exception_handler();
+    stack_exception_handler();
   } else {
     // normal exception
     printf("illegal instruction!\n");
@@ -42,8 +43,6 @@ int main() {
 
   // test instruction trace buffer
   trace_flowthrough_test();
-
-  return 0;
 
   // test stack trace
   stack_test();
