@@ -115,6 +115,24 @@ static void enable_exception(void) {
 // in this mode, we capture every instruction that retires
 // if the tracebuffer overflows, we just wrap around
 int trace_flowthrough_test() {
+  // test corner case
+  // what if ordinary exception(say illegal instruction exception)
+  // and tracebuf exception happens at the same time?
+  clear_trace();
+  // set the threshold to 1
+  // so that we throw a tracebuf exception everytime a instr commits
+  // so an illegal instruction will encounter two exceptions
+  set_threshold(1);
+  enable_exception();
+  start_trace();
+  asm volatile (".word 0x0\n.word 0x0\n.word 0x0\n.word 0x0\n.word 0x0\n");
+  asm volatile (".word 0x0\n.word 0x0\n.word 0x0\n.word 0x0\n.word 0x0\n");
+  stop_trace();
+  // still need to call dump_trace to dump any trace left in buffer
+  // the number of traces may have not reached threshold
+  // they will probably stay there forever
+  dump_trace();
+
   // do not use trigger
   clear_trace();
   set_threshold(32);
@@ -122,9 +140,6 @@ int trace_flowthrough_test() {
   start_trace();
   int ret = fib(2);
   stop_trace();
-  // still need to call dump_trace to dump any trace left in buffer
-  // the number of traces may have not reached threshold
-  // they will probably stay there forever
   dump_trace();
 
   // overflow test
