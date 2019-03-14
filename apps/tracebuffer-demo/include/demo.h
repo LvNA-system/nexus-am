@@ -48,7 +48,10 @@ enum {
   mstackbufdata0 = 0xfc8,
   mstackbufdata1,
   mstackbufdata2,
+
+  mepc = 0x341
 };
+
 
 #define CTRL_ENABLE_MASK 0x1
 #define CTRL_EXCEPTION_MASK 0x2

@@ -15,26 +15,22 @@ void trace_flowthrough_test();
 void init_stack_test();
 void stack_test();
 
-#define CSR_MEPC 0x341
-#define CSR_BCAUSE 0xfcd
-
 // exception handler
 extern void register_exception_handler();
 extern void trace_exception_handler(void);
 extern void stack_exception_handler(void);
-void my_exception_handler() {
-  long long bcause = read_csr(CSR_BCAUSE);
-  if (bcause != 0) {
-    trace_exception_handler();
-    stack_exception_handler();
-  } else {
-    // normal exception
-    printf("illegal instruction!\n");
-    // advance the mepc by 2byte to skip over the illegal instruction
-    // so we keep rolling
-    long long mepc = read_csr(CSR_MEPC);
-    write_csr(CSR_MEPC, mepc + 4);
-  }
+void ordinary_exception_handler() {
+  // normal exception
+  printf("illegal instruction!\n");
+  // advance the mepc by 4byte to skip over the illegal instruction
+  // so we keep rolling
+  long long csr_mepc = read_csr(mepc);
+  write_csr(mepc, csr_mepc + 4);
+}
+
+void tracebuf_exception_handler() {
+  trace_exception_handler();
+  stack_exception_handler();
 }
 
 int main() {
