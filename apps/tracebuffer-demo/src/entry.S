@@ -17,7 +17,6 @@
 
 #define bscratch 0x7de
 #define btvec 0x7df
-#define bcause 0xfcd
 
 .option norvc
 .section .text
