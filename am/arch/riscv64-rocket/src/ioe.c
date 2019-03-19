@@ -1,11 +1,11 @@
 #include <am.h>
-#include "riscv64-rocket.h"
+#include "riscv64.h"
 
 static unsigned long boot_time = 0;
 #define HZ 100000000
 
 static inline uint64_t gettime(void) {
-  return read_const_csr(mcycle) / (HZ / 1000);
+  return read_csr(mcycle) / (HZ / 1000);
 }
 
 void _ioe_init() {

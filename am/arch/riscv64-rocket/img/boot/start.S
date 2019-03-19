@@ -3,6 +3,15 @@
 .type _start, @function
 
 _start:
+  j here
+.align 2
+magic_num:
+  .word 0xdeadbeef
+  # dtb will be put here
+  # 8K should be enough
+  .skip 0x2000
+here:
+  #csrwi 0x800, 1
   # load mtvec and make sure it sticks
   la t0, handle_trap
   csrw mtvec, t0
@@ -11,22 +20,27 @@ _start:
 
   # only let hart 0 run
   csrr  a0,mhartid
-2:bnez a0,2b
-  # load sp
-  # stack size for one core: 0x4000
-  li a1, 0x4000
-  mul a0, a0, a1
+2:bne a0, zero, 2b
+
   la sp, stack_end
-  sub sp, sp, a0
   tail _trm_init
 
-.align 3
+
+
 handle_trap:
   # exception stack (for simulation)
-  li sp, 0x100fff000
-  tail bad_trap
+  # la sp, exception_stack
+  mv s0, ra
+  call irq_handle
+  mv ra, s0
+  mret
 
-# reserve stack space for at least 8 cores
+.align 3
+.globl stack
+.globl stack_end
 stack:
-  .skip 0x20000
+  .skip 0x4000
 stack_end:
+exception_stack:
+  .skip 0x4000
+exception_stack_end:
